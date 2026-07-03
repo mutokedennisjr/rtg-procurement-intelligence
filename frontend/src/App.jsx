@@ -2,6 +2,7 @@ import PoOrderCheck from "./PoOrderCheck";
 import GroupPriceMatrix from "./GroupPriceMatrix";
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
+import logo from "./logo.jpg";
 
 // ========================================================
 // INTEGRATED ENGINE COMPONENT: SmartQuoteParser
@@ -38,28 +39,23 @@ function SmartQuoteParser({
       });
       return;
     }
-
     setIsProcessing(true);
     setLogFeedback({ type: "", message: "" });
-
     try {
       const lines = rawText.split(/\r?\n/);
       const outputBuffer = [];
+      // Cleaned up regex handles optional spacing and decimals perfectly
       const rateRegex =
-        /^(.*?)\s*[:\-–]?\s*(?:USD|US\$|\$)\s*(\d+(?:\.\d{1,2})?)\s*$/i;
-
+        /^(.*?)\s*[:\-–]?\s*(?:USD|US\s*\$|\$)\s*(\d+(?:\.\d{1,2})?)\s*$/i;
       lines.forEach((line) => {
         const cleanedLine = line.trim();
         if (cleanedLine.length < 4) return;
-
         const match = cleanedLine.match(rateRegex);
         if (match) {
           const rawItemName = match[1] ? match[1].trim() : "";
           const parsedPrice = parseFloat(match[2]);
-
           if (parsedPrice > 0 && rawItemName.length > 1) {
             const structuralMatch = normalizeCommodityName(rawItemName);
-
             outputBuffer.push({
               id: crypto.randomUUID
                 ? crypto.randomUUID()
@@ -79,7 +75,6 @@ function SmartQuoteParser({
       });
 
       setParsedItems(outputBuffer);
-
       if (outputBuffer.length > 0) {
         setLogFeedback({
           type: "success",
@@ -106,7 +101,6 @@ function SmartQuoteParser({
 
   const handleCommitToGlobalStaging = () => {
     if (parsedItems.length === 0) return;
-
     const formattedPayload = parsedItems.map((item) => ({
       commodity_name: item.commodity_name,
       uom: item.uom,
@@ -121,7 +115,6 @@ function SmartQuoteParser({
       potential_savings: 0.0,
       reporting_period: `${reportingPeriod}-01`,
     }));
-
     onParsedRecords(formattedPayload);
     setParsedItems([]);
     setRawText("");
@@ -143,7 +136,6 @@ function SmartQuoteParser({
           extract and format prices directly into the dashboard state.
         </p>
       </div>
-
       <div className="space-y-1.5">
         <label className="block text-xs font-bold uppercase text-slate-400 tracking-wider">
           Unstructured Telemetry Input Buffer
@@ -155,7 +147,6 @@ function SmartQuoteParser({
           className="w-full h-32 px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm font-mono text-slate-700 focus:border-[#d92332] outline-none"
         />
       </div>
-
       <div className="flex justify-between items-center gap-4">
         <button
           type="button"
@@ -163,9 +154,10 @@ function SmartQuoteParser({
           disabled={isProcessing}
           className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-300 text-white font-bold text-xs px-4 py-2 rounded-lg transition-all shadow-xs"
         >
-          {isProcessing ? "Processing Tokens..." : "⚡ Execute Pattern Matcher"}
+          {isProcessing
+            ? "Processing Tokens..."
+            : " ⚡  Execute Pattern Matcher"}
         </button>
-
         {parsedItems.length > 0 && (
           <button
             type="button"
@@ -176,20 +168,14 @@ function SmartQuoteParser({
           </button>
         )}
       </div>
-
       {logFeedback.message && (
         <div
-          className={`p-3 rounded-lg border text-xs font-semibold flex items-center gap-2 ${
-            logFeedback.type === "success"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-rose-50 border-rose-200 text-rose-800"
-          }`}
+          className={`p-3 rounded-lg border text-xs font-semibold flex items-center gap-2 ${logFeedback.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-rose-50 border-rose-200 text-rose-800"}`}
         >
-          <span>{logFeedback.type === "success" ? "✅" : "🚨"}</span>
+          <span>{logFeedback.type === "success" ? " ✅ " : " 🚨 "}</span>
           <p>{logFeedback.message}</p>
         </div>
       )}
-
       {parsedItems.length > 0 && (
         <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
           <div className="p-2.5 bg-white border-b border-slate-200 flex justify-between items-center">
@@ -237,7 +223,13 @@ export default function App() {
   const [targetProperty, setTargetProperty] = useState(
     "Bulawayo Rainbow Hotel",
   );
-  const [reportingPeriod, setReportingPeriod] = useState("2026-06");
+  // Replace: const [reportingPeriod, setReportingPeriod] = useState("2026-06");
+  // With this:
+  const [selectedYear, setSelectedYear] = useState("2026");
+  const [selectedMonth, setSelectedMonth] = useState("06");
+
+  // Compute the reporting period string dynamically so the rest of your system functions smoothly
+  const reportingPeriod = `${selectedYear}-${selectedMonth}`;
   const [searchFilter, setSearchFilter] = useState("");
 
   const [historicalMatrixRepository, setHistoricalMatrixRepository] = useState({
@@ -406,12 +398,8 @@ export default function App() {
   const splmPeriodKey = getPastPeriodKey(reportingPeriod, 1);
   const splyPeriodKey = getPastPeriodKey(reportingPeriod, 12);
 
-  // ========================================================
-  // COMPREHENSIVE INTELLIGENCE COMPILING PIPELINE
-  // ========================================================
   const processedAnalyticsData = currentMatrixRecords.map((row) => {
     const propertyPrice = row[currentHotelCode] || 0;
-
     const peerRates = Object.entries(hotelCodeMapping)
       .map(([name, code]) => ({
         name,
@@ -425,12 +413,10 @@ export default function App() {
       operationalRates.length > 0
         ? Math.min(...operationalRates)
         : propertyPrice;
-
     const cheapestNodeObj = peerRates.find((p) => p.price === minGroupPrice);
     const cheapestProperty = cheapestNodeObj
       ? cheapestNodeObj.name
       : "Optimal Floor Rate";
-
     const sortedRates = [...new Set(operationalRates)].sort((a, b) => a - b);
     const hotelRank =
       propertyPrice > 0 ? sortedRates.indexOf(propertyPrice) + 1 : "—";
@@ -440,7 +426,6 @@ export default function App() {
       (r) => r.commodity.toLowerCase() === row.commodity.toLowerCase(),
     );
     const splmPrice = splmMatch ? splmMatch[currentHotelCode] || 0 : 0;
-
     let splm_change_pct = 0;
     let indicator = "► No Change";
     if (splmPrice > 0 && propertyPrice > 0) {
@@ -460,7 +445,7 @@ export default function App() {
         : 0;
 
     const varianceLeakage =
-      propertyPrice > minGroupPrice ? (propertyPrice - minGroupPrice) * 100 : 0;
+      propertyPrice > minGroupPrice ? propertyPrice - minGroupPrice : 0;
 
     return {
       commodity_name: row.commodity,
@@ -480,7 +465,6 @@ export default function App() {
     };
   });
 
-  // Filter records based on active target criteria match
   const filteredAnalyticsData = processedAnalyticsData.filter((item) =>
     item.commodity_name.toLowerCase().includes(searchFilter.toLowerCase()),
   );
@@ -497,10 +481,6 @@ export default function App() {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState({ type: "", message: "" });
   const [isUploading, setIsUploading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formCommodityName, setFormCommodityName] = useState("");
-  const [formUom, setFormUom] = useState("Kg");
-  const [formCurrentPrice, setFormCurrentPrice] = useState("");
 
   const handleMergeParsedRecords = (newRecords) => {
     setHistoricalMatrixRepository((prev) => {
@@ -539,10 +519,7 @@ export default function App() {
       try {
         const bstr = evt.target.result;
         const wb = XLSX.read(bstr, { type: "binary" });
-        const ws =
-          wb.Sheets[
-            wb.Sheets[wb.SheetNames[0]] ? wb.SheetNames[0] : wb.SheetNames[0]
-          ];
+        const ws = wb.Sheets[wb.SheetNames[0]];
         const importedJson = XLSX.utils.sheet_to_json(ws);
 
         setHistoricalMatrixRepository((prev) => {
@@ -556,12 +533,11 @@ export default function App() {
             const price = parseFloat(
               excelRow.unit_price || excelRow.Price || excelRow["Active Rate"],
             );
-
             if (!name || isNaN(price)) return;
+
             const idx = activeMonthRecords.findIndex(
               (item) => item.commodity.toLowerCase() === name.toLowerCase(),
             );
-
             if (idx !== -1) {
               activeMonthRecords[idx][currentHotelCode] = price;
             } else {
@@ -581,9 +557,10 @@ export default function App() {
           });
           return { ...prev, [reportingPeriod]: activeMonthRecords };
         });
+
         setUploadStatus({
           type: "success",
-          message: "Data successfully synchronized!",
+          message: "Data layers successfully merged with group pricing matrix!",
         });
         setUploadFile(null);
       } catch (err) {
@@ -602,7 +579,17 @@ export default function App() {
     <div className="min-h-screen bg-[#f8fafc] flex font-sans text-slate-700 selection:bg-[#d92332]/10">
       {/* SIDEBAR NAVIGATION */}
       <aside className="w-64 bg-slate-900 flex flex-col border-r border-slate-200 shrink-0 text-slate-300">
-        <div className="p-6 border-b border-slate-800 bg-slate-950">
+        <div className="p-6 border-b border-slate-800 bg-slate-950 flex flex-col items-center text-center">
+          {/* ===== LOGO INSERTION START ===== */}
+          <div className="mb-3 bg-white p-2 rounded-lg shadow-sm w-full flex justify-center">
+            <img
+              src={logo}
+              alt="RTG Logo"
+              className="h-12 w-auto object-contain"
+            />
+          </div>
+          {/* ===== LOGO INSERTION END ===== */}
+
           <h1 className="text-xl font-black text-white tracking-wider uppercase">
             RTG Procurement
           </h1>
@@ -611,234 +598,242 @@ export default function App() {
           </p>
         </div>
         <nav className="flex-1 p-4 space-y-1.5">
+          {/* ... remaining nav buttons stay exactly the same ... */}
           <button
             onClick={() => setActiveTab("overview")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-bold transition-all ${
-              activeTab === "overview"
-                ? "bg-[#d92332] text-white shadow-md shadow-[#d92332]/20"
-                : "hover:bg-slate-800 text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-bold transition-all ${activeTab === "overview" ? "bg-[#d92332] text-white shadow-md shadow-[#d92332]/20" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"}`}
           >
             📊 Analytics Overview
           </button>
           <button
             onClick={() => setActiveTab("matrix")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-bold transition-all ${
-              activeTab === "matrix"
-                ? "bg-[#d92332] text-white shadow-md shadow-[#d92332]/20"
-                : "hover:bg-slate-800 text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-bold transition-all ${activeTab === "matrix" ? "bg-[#d92332] text-white shadow-md shadow-[#d92332]/20" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"}`}
           >
-            🏁 Group Price Matrix
+            🔲 Sourcing Grid Matrix
           </button>
           <button
-            onClick={() => setActiveTab("upload")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-bold transition-all ${
-              activeTab === "upload"
-                ? "bg-[#d92332] text-white shadow-md shadow-[#d92332]/20"
-                : "hover:bg-slate-800 text-slate-400"
-            }`}
+            onClick={() => setActiveTab("import")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-wider font-bold transition-all ${activeTab === "import" ? "bg-[#d92332] text-white shadow-md shadow-[#d92332]/20" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"}`}
           >
             📥 Import Data Layer
           </button>
         </nav>
-        <div className="p-4 border-t border-slate-800 text-[11px] text-slate-500 font-mono text-center">
-          v1.0.0 • RTG Core Network
-        </div>
       </aside>
 
-      {/* WORKSPACE VIEWPORT */}
-      <main className="flex-1 p-8 overflow-y-auto w-full max-w-7xl mx-auto space-y-6">
-        {/* GLOBAL HEADER BAR WITH GENERAL CONTROLS */}
+      {/* MAIN CONTAINER CONTENT VIEW */}
+      <main className="flex-1 overflow-y-auto p-8 space-y-6">
+        {/* GLOBAL HEADER CONFIGURATORS */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              Procurement Intelligence Center
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">
+              Active Strategy Workspace
             </h2>
             <p className="text-xs text-slate-500">
-              Track dynamic monthly baseline movements and vendor pricing
-              behaviors.
+              Period context filters automatically adapt grid dependencies
+              dynamically.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={targetProperty}
-              onChange={(e) => setTargetProperty(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:border-[#d92332] outline-none"
-            >
-              {Object.keys(hotelCodeMapping).map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="month"
-              value={reportingPeriod}
-              onChange={(e) => setReportingPeriod(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-[#d92332] outline-none"
-            />
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-[#d92332] text-white hover:bg-[#b81d2a] text-xs font-bold px-4 py-2 rounded-lg transition-all shadow-xs"
-            >
-              + Add New Record
-            </button>
+            <div className="flex flex-col space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">
+                Target Control Property
+              </label>
+              <select
+                value={targetProperty}
+                onChange={(e) => setTargetProperty(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-lg text-xs px-3 py-2 font-semibold outline-none focus:border-[#d92332]"
+              >
+                {Object.keys(hotelCodeMapping).map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Reporting Period
+              </label>
+              <div className="flex items-center gap-2">
+                {/* 1. YEAR SELECTOR (ALL OPTIONS LIVE INSIDE) */}
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg text-xs px-3 py-2 font-semibold font-mono outline-none focus:border-[#d92332]"
+                >
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                  <option value="2029">2029</option>
+                  <option value="2030">2030</option>
+                  <option value="2031">2031</option>
+                  <option value="2032">2032</option>
+                  <option value="2033">2033</option>
+                  <option value="2034">2034</option>
+                  <option value="2035">2035</option>
+                  <option value="2036">2036</option>
+                  <option value="2037">2037</option>
+                  <option value="2038">2038</option>
+                  <option value="2039">2039</option>
+                  <option value="2040">2040</option>
+                  <option value="2041">2041</option>
+                  <option value="2042">2042</option>
+                  <option value="2043">2043</option>
+                  <option value="2044">2044</option>
+                  <option value="2045">2045</option>
+                  <option value="2046">2046</option>
+                  <option value="2047">2047</option>
+                  <option value="2048">2048</option>
+                  <option value="2049">2049</option>
+                  <option value="2050">2050</option>
+                </select>
+
+                {/* 2. MONTH SELECTOR */}
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg text-xs px-3 py-2 font-semibold font-mono outline-none focus:border-[#d92332]"
+                >
+                  <option value="01">January (01)</option>
+                  <option value="02">February (02)</option>
+                  <option value="03">March (03)</option>
+                  <option value="04">April (04)</option>
+                  <option value="05">May (05)</option>
+                  <option value="06">June (06)</option>
+                  <option value="07">July (07)</option>
+                  <option value="08">August (08)</option>
+                  <option value="09">September (09)</option>
+                  <option value="10">October (10)</option>
+                  <option value="11">November (11)</option>
+                  <option value="12">December (12)</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* VIEW 1: ANALYTICS OVERVIEW VIEW */}
+        {/* TAB TARGETING CONDITIONAL ROUTER */}
         {activeTab === "overview" && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Total Leakage / Tracked Savings
-                </span>
-                <h3 className="text-2xl font-black text-emerald-600 mt-1">
-                  ${aggregateTrackedSavings.toFixed(2)}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Variance against internal optimal floor rates
-                </p>
+          <div className="space-y-6">
+            {/* KPIS WIDGETS LAYOUT */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase">
+                    Monitored Vectors
+                  </p>
+                  <p className="text-2xl font-black text-slate-800 mt-1">
+                    {totalMonitoredItems}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-lg">
+                  📦
+                </div>
               </div>
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Monitored Items
-                </span>
-                <h3 className="text-2xl font-black text-slate-800 mt-1">
-                  {totalMonitoredItems} Commodities
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Active ledger matrix instances tracked
-                </p>
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase">
+                    Group Price Anomalies
+                  </p>
+                  <p className="text-2xl font-black text-rose-600 mt-1">
+                    {structuralAnomaliesCount}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center text-lg">
+                  🚨
+                </div>
               </div>
-              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-xs font-bold uppercase tracking-wider text-red-500">
-                  Critical Anomalies
-                </span>
-                <h3 className="text-2xl font-black text-red-600 mt-1">
-                  {structuralAnomaliesCount} Flagged
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Items exceeding 15% inflation variance
-                </p>
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase">
+                    Variance Floor Leakage
+                  </p>
+                  <p className="text-2xl font-black text-emerald-600 mt-1">
+                    ${aggregateTrackedSavings.toFixed(2)}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg">
+                  💵
+                </div>
               </div>
             </div>
 
-            {/* LIVE DYNAMIC SEARCH FILTER CONTROL ROW */}
-            <div className="w-full max-w-md">
-              <input
-                type="text"
-                placeholder="🔍 Filter commodities by title phrase..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full px-4 py-2 text-xs border border-slate-200 bg-white rounded-lg outline-none focus:border-[#d92332] font-medium"
-              />
-            </div>
-
-            {/* TIME-SERIES COMPARATIVE INTELLIGENCE VIEWPORT */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-              <div className="p-4 bg-slate-50 border-b border-slate-200 font-bold text-xs uppercase tracking-wider text-slate-600">
-                Detailed Procurement Performance Metrics Matrix (
-                {reportingPeriod})
+            {/* MAIN ANALYTICS DATA STAGING VIEW */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between gap-4">
+                <h3 className="font-bold text-sm text-slate-800">
+                  Target Analytics Pipeline Staging ({targetProperty})
+                </h3>
+                <input
+                  type="text"
+                  placeholder="Filter tracked records..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg text-xs px-3 py-1.5 outline-none focus:border-[#d92332] w-64 font-medium"
+                />
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
-                      <th className="p-3.5">Commodity</th>
-                      <th className="p-3.5">Price</th>
-                      <th className="p-3.5 text-center">Trend Indicator</th>
-                      <th className="p-3.5 text-center">SPLM Change</th>
-                      <th className="p-3.5 text-center">SPLY Change</th>
-                      <th className="p-3.5 text-center">Group Rank</th>
-                      <th className="p-3.5">Cheapest Property Node</th>
-                      <th className="p-3.5 text-right text-emerald-600">
-                        Leakage Variance
-                      </th>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
+                      <th className="p-4">Commodity Item</th>
+                      <th className="p-4">UOM</th>
+                      <th className="p-4">Active Rate</th>
+                      <th className="p-4">MoM Delta</th>
+                      <th className="p-4">Cheapest Node Group Price</th>
+                      <th className="p-4">Rank No.</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
                     {filteredAnalyticsData.length === 0 ? (
                       <tr>
                         <td
-                          colSpan="8"
-                          className="p-8 text-center text-slate-400 font-mono text-xs"
+                          colSpan="6"
+                          className="p-8 text-center text-slate-400 font-medium"
                         >
-                          No metrics calculated. Fill data layers or modify
-                          filter query.
+                          No operational pricing telemetry synced for this
+                          configuration.
                         </td>
                       </tr>
                     ) : (
-                      filteredAnalyticsData.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/60">
-                          <td className="p-3.5 font-bold text-slate-900">
-                            {item.commodity_name}{" "}
-                            <span className="text-slate-400 font-normal">
-                              ({item.uom})
+                      filteredAnalyticsData.map((row, i) => (
+                        <tr
+                          key={i}
+                          className="hover:bg-slate-50/80 transition-colors"
+                        >
+                          <td className="p-4 font-bold text-slate-800">
+                            {row.commodity_name}
+                          </td>
+                          <td className="p-4">
+                            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-mono">
+                              {row.uom}
                             </span>
                           </td>
-                          <td className="p-3.5 font-mono font-bold">
-                            {item.current_price > 0 ? (
-                              `$${item.current_price.toFixed(2)}`
-                            ) : (
-                              <span className="text-slate-300 font-normal">
-                                — (Not Added)
-                              </span>
-                            )}
+                          <td className="p-4 font-semibold text-slate-900">
+                            ${row.current_price.toFixed(2)}
                           </td>
-                          <td className="p-3.5 text-center font-bold">
+                          <td className="p-4">
                             <span
-                              className={
-                                item.indicator.includes("Increase")
-                                  ? "text-rose-600"
-                                  : item.indicator.includes("Decrease")
-                                    ? "text-emerald-600"
-                                    : "text-slate-400"
-                              }
+                              className={`inline-flex items-center gap-1 font-bold ${row.splm_change_pct > 0 ? "text-rose-600" : row.splm_change_pct < 0 ? "text-emerald-600" : "text-slate-400"}`}
                             >
-                              {item.indicator.includes("Increase")
-                                ? "▲"
-                                : item.indicator.includes("Decrease")
-                                  ? "▼"
-                                  : "►"}{" "}
-                              {item.indicator.split(" ")[1] || "Stable"}
+                              {row.indicator} ({row.splm_change_pct.toFixed(1)}
+                              %)
                             </span>
                           </td>
-                          <td
-                            className={`p-3.5 text-center font-mono ${item.splm_change_pct > 0 ? "text-rose-600" : item.splm_change_pct < 0 ? "text-emerald-600" : "text-slate-400"}`}
-                          >
-                            {item.splm_change_pct === 0
-                              ? "0.0%"
-                              : `${item.splm_change_pct > 0 ? "+" : ""}${item.splm_change_pct.toFixed(1)}%`}
+                          <td className="p-4 text-slate-500">
+                            <span className="font-semibold text-slate-800">
+                              ${row.min_group_price.toFixed(2)}
+                            </span>{" "}
+                            ({row.cheapest_property})
                           </td>
-                          <td
-                            className={`p-3.5 text-center font-mono ${item.sply_change_pct > 0 ? "text-rose-600" : item.sply_change_pct < 0 ? "text-emerald-600" : "text-slate-400"}`}
-                          >
-                            {item.sply_change_pct === 0
-                              ? "—"
-                              : `${item.sply_change_pct > 0 ? "+" : ""}${item.sply_change_pct.toFixed(1)}%`}
-                          </td>
-                          <td className="p-3.5 text-center">
-                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
-                              Rank #{item.hotel_rank}
+                          <td className="p-4">
+                            <span
+                              className={`px-2 py-0.5 rounded font-black ${row.hotel_rank === 1 ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}
+                            >
+                              {row.hotel_rank}
                             </span>
-                          </td>
-                          <td className="p-3.5 text-slate-500 max-w-[180px] truncate">
-                            {item.cheapest_property}{" "}
-                            <span className="text-slate-400 font-mono font-bold">
-                              (${item.min_group_price.toFixed(2)})
-                            </span>
-                          </td>
-                          <td className="p-3.5 text-right font-mono font-bold text-rose-600 bg-rose-500/[0.02]">
-                            {item.potential_savings > 0 ? (
-                              `$${item.potential_savings.toFixed(2)}`
-                            ) : (
-                              <span className="text-emerald-600">
-                                Optimum Floor
-                              </span>
-                            )}
                           </td>
                         </tr>
                       ))
@@ -847,86 +842,124 @@ export default function App() {
                 </table>
               </div>
             </div>
-
-            <SmartQuoteParser
-              targetProperty={targetProperty}
-              reportingPeriod={reportingPeriod}
-              onParsedRecords={handleMergeParsedRecords}
-            />
           </div>
         )}
 
         {activeTab === "matrix" && (
-          <GroupPriceMatrix
-            reportingPeriod={reportingPeriod}
-            setReportingPeriod={setReportingPeriod}
-            currentMatrixRecords={currentMatrixRecords}
-          />
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden space-y-4 p-6">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="font-bold text-sm text-slate-800">
+                Optimum Pricing Sourcing Grid Matrix
+              </h3>
+              <p className="text-xs text-slate-500">
+                Global visualization mapping structured vectors directly across
+                all properties.
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border border-slate-100 rounded-lg">
+                <thead>
+                  <tr className="bg-slate-800 text-white font-bold tracking-wider uppercase text-center">
+                    <th className="p-3 text-left">Commodity Structure</th>
+                    <th className="p-3">UOM</th>
+                    <th className="p-3">RTH</th>
+                    <th className="p-3">KHCC</th>
+                    <th className="p-3">BRH</th>
+                    <th className="p-3">VFRH</th>
+                    <th className="p-3">AZRL</th>
+                    <th className="p-3 bg-slate-700">NAH (New)</th>
+                    <th className="p-3 bg-slate-700">MRC (New)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-center font-mono font-semibold text-slate-700">
+                  {currentMatrixRecords.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="9"
+                        className="p-8 text-center font-sans text-slate-400 font-medium"
+                      >
+                        No grid arrays mapped for this period. Please load
+                        telemetry data layers.
+                      </td>
+                    </tr>
+                  ) : (
+                    currentMatrixRecords.map((item, index) => (
+                      <tr
+                        key={index}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="p-3 text-left font-sans font-bold text-slate-900">
+                          {item.commodity}
+                        </td>
+                        <td className="p-3">
+                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-sans text-[11px] font-bold">
+                            {item.uom}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-800">
+                          {item.RTH ? `$${Number(item.RTH).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="p-3 text-slate-800">
+                          {item.KHCC ? `$${Number(item.KHCC).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="p-3 text-slate-800">
+                          {item.BRH ? `$${Number(item.BRH).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="p-3 text-slate-800">
+                          {item.VFRH ? `$${Number(item.VFRH).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="p-3 text-slate-800">
+                          {item.AZRL ? `$${Number(item.AZRL).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="p-3 bg-slate-50 text-indigo-700 font-bold">
+                          {item.NAH ? `$${Number(item.NAH).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="p-3 bg-slate-50 text-indigo-700 font-bold">
+                          {item.MRC ? `$${Number(item.MRC).toFixed(2)}` : "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
-        {/* VIEW 3: DATA IMPORT LAYER WITH LIVE STREAM GRID VIEW */}
-        {activeTab === "upload" && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs max-w-2xl mx-auto space-y-6">
+        {activeTab === "import" && (
+          <div className="grid grid-cols-1 gap-6">
+            {/* EXCEL INGESTION DATA LAYER MODULE */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
               <div>
-                <h2 className="text-lg font-black text-slate-800 uppercase tracking-wider">
-                  📥 Regional Spreadsheet Intake Portal
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Upload files generated by hotel nodes to cross-reference
-                  prices.
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  📂 Batch Excel Data Layer Ingestion
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Upload vendor quotation vectors (.xlsx) to append columns
+                  directly into the active matrix profile.
                 </p>
               </div>
-              <form onSubmit={handleFileUploadSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <select
-                    value={targetProperty}
-                    onChange={(e) => setTargetProperty(e.target.value)}
-                    className="text-xs font-bold p-2 bg-slate-50 border rounded-lg focus:outline-none"
-                  >
-                    {Object.keys(hotelCodeMapping).map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="month"
-                    value={reportingPeriod}
-                    onChange={(e) => setReportingPeriod(e.target.value)}
-                    className="text-xs font-bold p-2 bg-slate-50 border rounded-lg focus:outline-none"
-                  />
-                </div>
-                <div className="border-2 border-dashed rounded-xl p-8 text-center bg-slate-50 relative border-slate-200 hover:border-slate-300 transition-colors">
-                  <input
-                    type="file"
-                    accept=".csv, .xlsx, .xls"
-                    onChange={(e) => setUploadFile(e.target.files[0])}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <p className="text-sm font-bold text-slate-700">
-                    {uploadFile
-                      ? uploadFile.name
-                      : "Choose CSV or Excel sheets"}
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Supports columns: Commodity Item, UOM, Active Rate
-                  </p>
-                </div>
+              <form
+                onSubmit={handleFileUploadSubmit}
+                className="flex items-center gap-3 border border-dashed border-slate-200 p-4 bg-slate-50/50 rounded-xl"
+              >
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={(e) => setUploadFile(e.target.files[0])}
+                  className="text-xs font-semibold file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 file:cursor-pointer text-slate-500"
+                />
                 <button
                   type="submit"
                   disabled={!uploadFile || isUploading}
-                  className="w-full bg-[#d92332] hover:bg-[#b81d2a] disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs py-2.5 rounded-lg uppercase transition-all"
+                  className="bg-[#d92332] hover:bg-[#b81d29] disabled:bg-slate-300 text-white font-bold text-xs px-4 py-2 rounded-lg transition-all shadow-xs"
                 >
-                  {isUploading
-                    ? "Importing Buffer Sheets..."
-                    : "Verify and Import Dataset"}
+                  {isUploading ? "Syncing..." : "📥 Synchronize Matrix"}
                 </button>
               </form>
-
               {uploadStatus.message && (
                 <div
-                  className={`p-3 rounded-lg border text-xs font-semibold ${uploadStatus.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-rose-50 border-rose-200 text-rose-800"}`}
+                  className={`p-3 rounded-lg text-xs font-semibold ${uploadStatus.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-rose-50 text-rose-800 border border-rose-100"}`}
                 >
                   {uploadStatus.type === "success" ? "✅ " : "🚨 "}
                   {uploadStatus.message}
@@ -934,198 +967,15 @@ export default function App() {
               )}
             </div>
 
-            {/* RE-COMPOSABLE COMMODITIES INGESTION DATAGRID TABLE */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-              <div className="p-4 bg-slate-50 border-b border-slate-200 font-bold text-xs uppercase tracking-wider text-slate-600 flex justify-between items-center">
-                <span>
-                  Active Import Store Ledger ({targetProperty} —{" "}
-                  {reportingPeriod})
-                </span>
-                <span className="bg-slate-200 text-slate-700 font-mono px-2 py-0.5 rounded text-[10px]">
-                  {
-                    currentMatrixRecords.filter(
-                      (r) =>
-                        r[currentHotelCode] !== null &&
-                        r[currentHotelCode] !== undefined,
-                    ).length
-                  }{" "}
-                  Saved Row Blocks
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
-                      <th className="p-3.5">Commodity Name Node</th>
-                      <th className="p-3.5">UOM Metric</th>
-                      <th className="p-3.5">Target Station Assignment</th>
-                      <th className="p-3.5 text-right px-6">
-                        Current Local Unit Rate ($)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
-                    {currentMatrixRecords.filter(
-                      (r) =>
-                        r[currentHotelCode] !== null &&
-                        r[currentHotelCode] !== undefined,
-                    ).length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan="4"
-                          className="p-8 text-center text-slate-400 font-mono text-xs"
-                        >
-                          No local table mappings written for this specific
-                          partition block. Paste or drag Excel sheets above.
-                        </td>
-                      </tr>
-                    ) : (
-                      currentMatrixRecords
-                        .filter(
-                          (row) =>
-                            row[currentHotelCode] !== null &&
-                            row[currentHotelCode] !== undefined,
-                        )
-                        .map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/60">
-                            <td className="p-3.5 font-bold text-slate-900">
-                              {row.commodity}
-                            </td>
-                            <td className="p-3.5">
-                              <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px]">
-                                {row.uom || "Unit"}
-                              </span>
-                            </td>
-                            <td className="p-3.5 text-slate-500 font-semibold">
-                              {targetProperty} ({currentHotelCode})
-                            </td>
-                            <td className="p-3.5 text-right font-mono font-bold text-slate-900 px-6">
-                              ${Number(row[currentHotelCode]).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {/* AI TEXT PARSER BUFFER COMPONENT */}
+            <SmartQuoteParser
+              targetProperty={targetProperty}
+              reportingPeriod={reportingPeriod}
+              onParsedRecords={handleMergeParsedRecords}
+            />
           </div>
         )}
       </main>
-
-      {/* MANUAL LEDGER ROW ENTRY MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full overflow-hidden shadow-xl animate-in zoom-in-95 duration-150">
-            <div className="p-4 bg-slate-50 border-b font-bold text-xs uppercase flex justify-between items-center text-slate-700">
-              <span>Append Matrix Intersect Data Layer</span>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!formCommodityName || !formCurrentPrice) return;
-
-                setHistoricalMatrixRepository((prev) => {
-                  const updated = [...(prev[reportingPeriod] || [])];
-                  const idx = updated.findIndex(
-                    (i) =>
-                      i.commodity.toLowerCase() ===
-                      formCommodityName.toLowerCase(),
-                  );
-                  const targetPriceNum = parseFloat(formCurrentPrice);
-
-                  if (idx !== -1) {
-                    updated[idx][currentHotelCode] = targetPriceNum;
-                  } else {
-                    updated.push({
-                      commodity: formCommodityName.trim(),
-                      uom: formUom,
-                      RTH: null,
-                      KHCC: null,
-                      BRH: null,
-                      VFRH: null,
-                      AZRL: null,
-                      NAH: null,
-                      MRC: null,
-                      [currentHotelCode]: targetPriceNum,
-                    });
-                  }
-                  return { ...prev, [reportingPeriod]: updated };
-                });
-
-                setFormCommodityName("");
-                setFormCurrentPrice("");
-                setIsModalOpen(false);
-              }}
-              className="p-4 space-y-4 text-xs"
-            >
-              <div className="space-y-1">
-                <label className="block text-[10px] font-bold uppercase text-slate-400">
-                  Commodity Name Structure
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Industrial Bleach 20L"
-                  value={formCommodityName}
-                  onChange={(e) => setFormCommodityName(e.target.value)}
-                  className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-[#d92332]"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold uppercase text-slate-400">
-                    UOM Flag
-                  </label>
-                  <select
-                    value={formUom}
-                    onChange={(e) => setFormUom(e.target.value)}
-                    className="w-full p-2 border border-slate-200 bg-white rounded-lg outline-none focus:border-[#d92332]"
-                  >
-                    <option value="Kg">Kg</option>
-                    <option value="Litres">Litres</option>
-                    <option value="Bucket">Bucket</option>
-                    <option value="Pack">Pack</option>
-                    <option value="Unit">Unit</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold uppercase text-slate-400">
-                    Unit Baseline Rate ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="0.00"
-                    value={formCurrentPrice}
-                    onChange={(e) => setFormCurrentPrice(e.target.value)}
-                    className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-[#d92332] font-mono font-bold"
-                  />
-                </div>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-[11px] text-slate-500 font-medium">
-                Target Pipeline Destination:{" "}
-                <span className="font-bold text-slate-700">
-                  {targetProperty} ({reportingPeriod})
-                </span>
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-[#d92332] hover:bg-[#b81d2a] text-white font-bold py-2.5 rounded-lg uppercase tracking-wider transition-colors shadow-xs"
-              >
-                Apply Layer Entry
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
